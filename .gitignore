@@ -6,3 +6,5 @@ test-ledger/
 *.keypair.json
 keys/
 dist/
+*.db
+*.db-*
