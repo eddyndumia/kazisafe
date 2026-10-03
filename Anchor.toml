@@ -1,0 +1,19 @@
+[toolchain]
+package_manager = "npm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+kazisafe = "G48xcsU1JTUtWhsg23Z3E94v3cUZDjg7S7wxH4NpYg4M"
+
+[programs.devnet]
+kazisafe = "G48xcsU1JTUtWhsg23Z3E94v3cUZDjg7S7wxH4NpYg4M"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "npx tsx --test tests/*.test.ts"
