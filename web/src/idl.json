@@ -1,0 +1,1364 @@
+{
+  "address": "G48xcsU1JTUtWhsg23Z3E94v3cUZDjg7S7wxH4NpYg4M",
+  "metadata": {
+    "name": "kazisafe",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Recruitment fee escrow released on proven milestones"
+  },
+  "instructions": [
+    {
+      "name": "cancel_unfunded",
+      "docs": [
+        "Agency can cancel a placement nobody has paid into yet."
+      ],
+      "discriminator": [
+        7,
+        11,
+        92,
+        226,
+        201,
+        56,
+        156,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "agency"
+          ]
+        },
+        {
+          "name": "agency",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          },
+          "relations": [
+            "placement"
+          ]
+        },
+        {
+          "name": "placement",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "confirm_stage",
+      "docs": [
+        "Attestor confirms the next stage after checking its proof. Releases that stage's share."
+      ],
+      "discriminator": [
+        8,
+        17,
+        47,
+        87,
+        46,
+        208,
+        211,
+        131
+      ],
+      "accounts": [
+        {
+          "name": "attestor",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agency",
+          "writable": true
+        },
+        {
+          "name": "placement",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "placement"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "agency_token",
+          "writable": true
+        },
+        {
+          "name": "treasury",
+          "writable": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "stage",
+          "type": "u8"
+        },
+        {
+          "name": "proof_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_placement",
+      "docs": [
+        "Agency creates a placement. Stage shares must add up to 100%."
+      ],
+      "discriminator": [
+        249,
+        16,
+        182,
+        87,
+        134,
+        200,
+        95,
+        220
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "agency"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agency",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "placement",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  99,
+                  101,
+                  109,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "agency"
+              },
+              {
+                "kind": "account",
+                "path": "agency.placements_created",
+                "account": "Agency"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "placement"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreatePlacementArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "fund_placement",
+      "docs": [
+        "Job seeker (or the M-Pesa ramp paying on their behalf) locks the full fee in the vault.",
+        "Whoever pays is who gets refunded, so the agency can never point a refund at itself."
+      ],
+      "discriminator": [
+        84,
+        44,
+        56,
+        215,
+        30,
+        32,
+        152,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "placement",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "payer_token",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "placement"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "seeker_ref",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "docs": [
+        "One-time setup: who verifies agencies, who signs stage proofs, which mint, fee."
+      ],
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "treasury"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "attestor",
+          "type": "pubkey"
+        },
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "docs": [
+        "After the deadline, anyone can send the unreleased money back to the job seeker."
+      ],
+      "discriminator": [
+        2,
+        96,
+        183,
+        251,
+        63,
+        208,
+        46,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "docs": [
+            "Anyone can trigger a refund once the deadline has passed."
+          ],
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agency",
+          "writable": true
+        },
+        {
+          "name": "placement",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "placement"
+              },
+              {
+                "kind": "account",
+                "path": "token_program"
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "refund_token",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "register_agency",
+      "docs": [
+        "Agency signs up. Starts unverified."
+      ],
+      "discriminator": [
+        102,
+        193,
+        24,
+        185,
+        91,
+        84,
+        85,
+        245
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "agency",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  103,
+                  101,
+                  110,
+                  99,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "license_no",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "set_agency_verified",
+      "docs": [
+        "Admin marks an agency verified after checking the NEA licensed list (or unverifies it)."
+      ],
+      "discriminator": [
+        72,
+        228,
+        48,
+        243,
+        111,
+        161,
+        223,
+        83
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "agency",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "verified",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "attestor",
+          "type": "pubkey"
+        },
+        {
+          "name": "fee_bps",
+          "type": "u16"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Agency",
+      "discriminator": [
+        190,
+        253,
+        179,
+        184,
+        231,
+        128,
+        71,
+        112
+      ]
+    },
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Placement",
+      "discriminator": [
+        122,
+        54,
+        91,
+        11,
+        76,
+        82,
+        131,
+        102
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AgencyVerified",
+      "discriminator": [
+        121,
+        101,
+        255,
+        204,
+        133,
+        234,
+        239,
+        32
+      ]
+    },
+    {
+      "name": "PlacementCreated",
+      "discriminator": [
+        33,
+        42,
+        243,
+        232,
+        122,
+        188,
+        21,
+        130
+      ]
+    },
+    {
+      "name": "PlacementFunded",
+      "discriminator": [
+        74,
+        186,
+        166,
+        7,
+        128,
+        98,
+        161,
+        39
+      ]
+    },
+    {
+      "name": "PlacementRefunded",
+      "discriminator": [
+        177,
+        194,
+        78,
+        149,
+        66,
+        217,
+        177,
+        243
+      ]
+    },
+    {
+      "name": "StageConfirmed",
+      "discriminator": [
+        150,
+        6,
+        160,
+        207,
+        43,
+        226,
+        251,
+        154
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "FeeTooHigh",
+      "msg": "Fee is above the 5% cap"
+    },
+    {
+      "code": 6001,
+      "name": "TooLong",
+      "msg": "Text is too long"
+    },
+    {
+      "code": 6002,
+      "name": "AgencyNotVerified",
+      "msg": "Agency is not verified"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidAmount",
+      "msg": "Amount must be above zero"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidStages",
+      "msg": "Stages must be 1 to 4 and add up to 100%"
+    },
+    {
+      "code": 6005,
+      "name": "DeadlineInPast",
+      "msg": "Deadline must be in the future"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidStatus",
+      "msg": "Placement is not in the right status for this"
+    },
+    {
+      "code": 6007,
+      "name": "WrongStage",
+      "msg": "Stages must be confirmed in order"
+    },
+    {
+      "code": 6008,
+      "name": "DeadlinePassed",
+      "msg": "Deadline has passed"
+    },
+    {
+      "code": 6009,
+      "name": "DeadlineNotReached",
+      "msg": "Deadline has not passed yet"
+    }
+  ],
+  "types": [
+    {
+      "name": "Agency",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "license_no",
+            "type": "string"
+          },
+          {
+            "name": "verified",
+            "type": "bool"
+          },
+          {
+            "name": "placements_created",
+            "type": "u64"
+          },
+          {
+            "name": "placements_completed",
+            "type": "u64"
+          },
+          {
+            "name": "placements_refunded",
+            "type": "u64"
+          },
+          {
+            "name": "total_released",
+            "type": "u64"
+          },
+          {
+            "name": "total_refunded",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AgencyVerified",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agency",
+            "type": "pubkey"
+          },
+          {
+            "name": "verified",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "attestor",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreatePlacementArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "stage_bps",
+            "type": {
+              "vec": "u16"
+            }
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "terms_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Placement",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "agency",
+            "type": "pubkey"
+          },
+          {
+            "name": "id",
+            "type": "u64"
+          },
+          {
+            "name": "refund_to",
+            "docs": [
+              "Token account owner that receives a refund (seeker wallet, or the ramp wallet for M-Pesa users)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "seeker_ref",
+            "docs": [
+              "Hash of the seeker's phone number, so the ramp knows whose M-Pesa to refund. No PII onchain."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "terms_hash",
+            "docs": [
+              "Hash of the job terms (title, employer, salary, country) agreed off-chain."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "funded",
+            "type": "u64"
+          },
+          {
+            "name": "released",
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "stage_count",
+            "type": "u8"
+          },
+          {
+            "name": "stage_bps",
+            "type": {
+              "array": [
+                "u16",
+                4
+              ]
+            }
+          },
+          {
+            "name": "stages_done",
+            "type": "u8"
+          },
+          {
+            "name": "proof_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                4
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "PlacementStatus"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlacementCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "placement",
+            "type": "pubkey"
+          },
+          {
+            "name": "agency",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlacementFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "placement",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlacementRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "placement",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlacementStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Created"
+          },
+          {
+            "name": "Funded"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Refunded"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StageConfirmed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "placement",
+            "type": "pubkey"
+          },
+          {
+            "name": "stage",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "proof_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
