@@ -24,6 +24,8 @@ export default function Agency() {
   const [reg, setReg] = useState({ name: '', licenseNo: '' })
   const [form, setForm] = useState({ jobTitle: '', employerName: '', employerDomain: '', country: 'Saudi Arabia', monthlySalary: '', feeKes: 100000, days: 90 })
   const [stages, setStages] = useState(defaultStages)
+  // Demo mode can set the deadline in minutes, so a refund can be shown live.
+  const [deadlineUnit, setDeadlineUnit] = useState<'days' | 'minutes'>('days')
   const [created, setCreated] = useState('')
 
   const load = useCallback(async () => {
@@ -62,7 +64,7 @@ export default function Agency() {
     run('create', async () => {
       if (!wallet || !health?.mint) throw new Error('Not connected')
       const saved = await api.saveTerms({ ...form, feeKes: Number(form.feeKes), stages })
-      const deadline = Math.floor(Date.now() / 1000) + Number(form.days) * 86400
+      const deadline = Math.floor(Date.now() / 1000) + Number(form.days) * (deadlineUnit === 'minutes' && health?.demoMode ? 60 : 86400)
       const r = await createPlacement(connection, wallet, new PublicKey(health.mint), { amountUsdc: saved.amountUsdc, stageBps: saved.stageBps, deadline, termsHash: saved.termsHash })
       setCreated(r.placement)
     })
@@ -123,7 +125,17 @@ export default function Agency() {
                 <div className="row">
                   <label>Monthly salary<input placeholder="SAR 2,500" value={form.monthlySalary} onChange={(e) => setForm({ ...form, monthlySalary: e.target.value })} required /></label>
                   <label>Fee (KES)<input type="number" min={1} value={form.feeKes} onChange={(e) => setForm({ ...form, feeKes: Number(e.target.value) })} required /></label>
-                  <label>Deadline (days)<input type="number" min={1} max={365} value={form.days} onChange={(e) => setForm({ ...form, days: Number(e.target.value) })} required /></label>
+                  <label>Deadline ({health?.demoMode ? deadlineUnit : 'days'})
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input type="number" min={1} max={365} value={form.days} onChange={(e) => setForm({ ...form, days: Number(e.target.value) })} required style={{ flex: 1, minWidth: 0 }} />
+                      {health?.demoMode && (
+                        <select value={deadlineUnit} onChange={(e) => setDeadlineUnit(e.target.value as 'days' | 'minutes')} style={{ flex: 'none' }}>
+                          <option value="days">days</option>
+                          <option value="minutes">minutes (demo)</option>
+                        </select>
+                      )}
+                    </div>
+                  </label>
                 </div>
                 <div className="tracker">
                   {stages.map((s, i) => (

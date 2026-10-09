@@ -4,12 +4,22 @@ Goal: ship a working KaziSafe demo and submit it to Colosseum's Crypto World's F
 
 Repo: `Documents/Projects/kazisafe`. Product: `docs/PRODUCT.md`. Theme: `docs/DESIGN.md`.
 
-## Status (2026-10-03)
-- [x] Escrow program written and compiling (Anchor 1.0.2, Docker build). Program id `G48xcsU1JTUtWhsg23Z3E94v3cUZDjg7S7wxH4NpYg4M`.
-- [x] Offer-email proof (DKIM) with 4 passing tests.
-- [x] Server routes: terms, agencies, scoreboard, pay by M-Pesa (mock or Daraja sandbox), proofs, refund.
-- [x] Web app scaffold (Vite + React + Solana wallet adapter).
-- [ ] Everything below.
+## Status (2026-10-09)
+Done:
+- [x] Escrow program (Anchor 1.0.2), deployed to devnet. Program id `G48xcsU1JTUtWhsg23Z3E94v3cUZDjg7S7wxH4NpYg4M`, test USDC mint `2kncvEP9JTMcMcQE9qEApQ9h9ZNRS6mzdqgXxtM4RuP7`.
+- [x] Program tests on LiteSVM (8), server tests (11): DKIM offer proof, single-use offers, M-Pesa callbacks.
+- [x] Devnet smoke test passes end to end (completed + refunded), also from a clean git checkout with keys in env vars.
+- [x] Web app: landing, seeker page (EN/SW), agency dashboard, scoreboard, agency page, admin.
+- [x] Hardening: demo proofs need the admin token, keyed phone hash onchain, one offer email per placement, admin check fails closed.
+- [x] Real M-Pesa flow: callbacks double-checked with Daraja, failed payments, no double pay, seeker page waits for the PIN.
+- [x] Hosting config: `render.yaml` (server + disk), `web/public/_redirects` (Cloudflare Pages).
+- [x] Root README, `server/.env.example`, demo script (`docs/DEMO.md`), demo-mode deadlines in minutes for the refund scene.
+
+Open:
+- [ ] Host: server on Render (Starter plan + disk), web on Cloudflare Pages. Needs account access.
+- [ ] Daraja sandbox keys into the hosted server, then test a real STK push (Eddy).
+- [ ] Real NEA list into `server/data/nea-agencies.json` (Eddy).
+- [ ] Interviews, videos, submission (Days 7 to 9).
 
 ## Build: how to build and test the program
 Windows has no Solana toolchain, so everything runs in Docker:
