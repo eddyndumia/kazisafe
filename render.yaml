@@ -1,0 +1,46 @@
+# Render blueprint for the KaziSafe server (proof service + M-Pesa + attestor).
+# Secrets are marked sync: false: Render asks for them when the blueprint is first applied.
+services:
+  - type: web
+    name: kazisafe-server
+    runtime: node
+    plan: starter # a persistent disk needs a paid plan; job terms and payments live in SQLite
+    rootDir: server
+    buildCommand: npm ci --no-audit --no-fund
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: kazisafe-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DB_PATH
+        value: /var/data/kazisafe.db
+      - key: RPC_URL
+        value: https://api.devnet.solana.com
+      - key: KES_PER_USD
+        value: "129"
+      - key: DEMO_MODE
+        value: "true"
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: SEEKER_REF_SECRET
+        sync: false
+      - key: ADMIN_KEY # contents of keys/admin.json (the JSON array)
+        sync: false
+      - key: ATTESTOR_KEY # contents of keys/attestor.json
+        sync: false
+      - key: RAMP_KEY # contents of keys/ramp.json
+        sync: false
+      - key: DARAJA_CONSUMER_KEY
+        sync: false
+      - key: DARAJA_CONSUMER_SECRET
+        sync: false
+      - key: DARAJA_SHORTCODE
+        sync: false
+      - key: DARAJA_PASSKEY
+        sync: false
+      - key: DARAJA_CALLBACK_URL # https://<this service>.onrender.com/api/mpesa/callback
+        sync: false

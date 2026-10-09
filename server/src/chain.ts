@@ -6,7 +6,11 @@ import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { getAssociatedTokenAddressSync, getOrCreateAssociatedTokenAccount, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import bs58 from "bs58";
 
-const idlPath = fileURLToPath(new URL("../../target/idl/kazisafe.json", import.meta.url));
+// target/ is git-ignored, so hosted builds fall back to the copy the web app ships with.
+const idlPath = [process.env.IDL_PATH, "../../target/idl/kazisafe.json", "../../web/src/idl.json"]
+  .filter((p): p is string => !!p)
+  .map((p) => (p.startsWith("/") ? p : fileURLToPath(new URL(p, import.meta.url))))
+  .find((p) => existsSync(p))!;
 
 function loadKey(envName: string, file: string): Keypair {
   const v = process.env[envName];
