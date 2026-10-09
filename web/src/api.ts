@@ -67,7 +67,7 @@ export const api = {
     fd.append('eml', file)
     return req<{ domain: string; subject: string; tx: string }>(`/api/placements/${pk}/proofs/offer`, { method: 'POST', body: fd })
   },
-  demoProof: (pk: string) => req<{ kind: string; tx: string }>(`/api/placements/${pk}/proofs/demo`, json('POST', {})),
+  demoProof: (pk: string, token: string) => req<{ kind: string; tx: string }>(`/api/placements/${pk}/proofs/demo`, json('POST', {}, { 'x-admin-token': token })),
   refund: (pk: string) => req<{ tx: string; amountKes: number }>(`/api/placements/${pk}/refund`, json('POST', {})),
   verify: (pk: string, token: string, force = false) =>
     req<{ tx: string; manualOverride: boolean }>(`/api/agencies/${pk}/verify${force ? '?force=1' : ''}`, json('POST', {}, { 'x-admin-token': token })),

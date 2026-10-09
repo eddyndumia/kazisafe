@@ -21,6 +21,7 @@ const call = async (path: string, body?: unknown, headers: Record<string, string
   return j as any;
 };
 
+const adminH = { "x-admin-token": process.env.ADMIN_TOKEN! };
 const health = await call("/api/health");
 const mint = new PublicKey(health.mint);
 const agencyKey = Keypair.generate();
@@ -54,15 +55,15 @@ async function place(id: number, days: number, seconds = 0) {
 const p1 = await place(0, 90);
 console.log("placement 1", p1);
 console.log("pay", await call(`/api/placements/${p1}/pay`, { phone: "0712345678" }));
-console.log("visa", (await call(`/api/placements/${p1}/proofs/demo`, {})).tx);
-console.log("salary", (await call(`/api/placements/${p1}/proofs/demo`, {})).tx);
+console.log("visa", (await call(`/api/placements/${p1}/proofs/demo`, {}, adminH)).tx);
+console.log("salary", (await call(`/api/placements/${p1}/proofs/demo`, {}, adminH)).tx);
 console.log("status", (await call(`/api/placements/${p1}`)).status);
 
 // 2) refund path: deadline 25 seconds out
 const p2 = await place(1, 0, 25);
 console.log("placement 2", p2);
 await call(`/api/placements/${p2}/pay`, { phone: "0798765432" });
-console.log("visa", (await call(`/api/placements/${p2}/proofs/demo`, {})).tx);
+console.log("visa", (await call(`/api/placements/${p2}/proofs/demo`, {}, adminH)).tx);
 await new Promise((r) => setTimeout(r, 35_000));
 console.log("refund", await call(`/api/placements/${p2}/refund`, {}));
 console.log("status", (await call(`/api/placements/${p2}`)).status);

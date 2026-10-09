@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS proofs (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (placement, stage)
 );
+-- One offer email proves one placement. Stops an agency reusing the same offer for many seekers.
+CREATE UNIQUE INDEX IF NOT EXISTS proofs_offer_once ON proofs (proof_hash) WHERE kind = 'offer';
 CREATE TABLE IF NOT EXISTS refunds (
   placement TEXT PRIMARY KEY,
   phone TEXT,
@@ -54,5 +56,9 @@ export type Terms = {
   feeKes: number;
   stages: Array<{ kind: "offer" | "visa" | "salary"; label: string; bps: number }>;
 };
+
+export function offerProofUsedElsewhere(proofHash: string, placement: string): boolean {
+  return !!db.prepare("SELECT 1 FROM proofs WHERE kind = 'offer' AND proof_hash = ? AND placement != ?").get(proofHash, placement);
+}
 
 export const stageKinds = (t: Terms) => t.stages.map((s) => s.kind);

@@ -45,6 +45,17 @@ export default function Agency() {
     try { await fn(); await load() } catch (e) { setErr((e as Error).message) } finally { setBusy('') }
   }
 
+  // Demo proofs stand in for the attestor, so they need the admin token (shared with the /admin page).
+  const demoProof = async (pk: string) => {
+    let token = ''
+    try { token = sessionStorage.getItem('adminToken') ?? '' } catch { /* ignore */ }
+    if (!token) token = window.prompt('Admin token (demo proofs are KaziSafe-only)') ?? ''
+    if (!token) throw new Error('Demo proofs need the admin token')
+    const r = await api.demoProof(pk, token)
+    try { sessionStorage.setItem('adminToken', token) } catch { /* ignore */ }
+    return r
+  }
+
   const totalBps = stages.reduce((a, s) => a + s.bps, 0)
 
   const submitPlacement = () =>
@@ -158,7 +169,7 @@ export default function Agency() {
                     </label>
                   )}
                   {p.status === 'funded' && next && next.kind !== 'offer' && health?.demoMode && (
-                    <button className="btn btn-ghost btn-sm" style={{ flex: 'none' }} disabled={!!busy} onClick={() => run(p.pubkey, () => api.demoProof(p.pubkey))}>
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 'none' }} disabled={!!busy} onClick={() => run(p.pubkey, () => demoProof(p.pubkey))}>
                       {busy === p.pubkey ? 'Confirming…' : `Demo proof: ${next.label}`}
                     </button>
                   )}

@@ -1,22 +1,26 @@
 import "dotenv/config";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import * as chain from "./chain.ts";
-import { db, type Terms } from "./store.ts";
+import { db, offerProofUsedElsewhere, type Terms } from "./store.ts";
 import { verifyOfferEmail } from "./offerProof.ts";
 import { mpesaMode, normalisePhone, parseStkCallback, refundToPhone, stkPush } from "./mpesa.ts";
 import { checkNea } from "./nea.ts";
 
 const KES_PER_USD = Number(process.env.KES_PER_USD ?? 129);
 const DEMO_MODE = process.env.DEMO_MODE !== "false";
+// Keyed so the onchain seeker_ref can't be reversed by hashing every Kenyan phone number.
+const SEEKER_REF_SECRET = process.env.SEEKER_REF_SECRET;
+if (!SEEKER_REF_SECRET) throw new Error("Set SEEKER_REF_SECRET in .env (any long random string, keep it stable)");
 const app = new Hono();
 app.use("/api/*", cors());
 
 const sha256 = (s: string | Buffer) => createHash("sha256").update(s).digest();
 const now = () => Math.floor(Date.now() / 1000);
 const fail = (c: any, status: number, error: string) => c.json({ error }, status);
+const isAdmin = (c: any) => !!process.env.ADMIN_TOKEN && c.req.header("x-admin-token") === process.env.ADMIN_TOKEN;
 
 function termsFor(hash: string): Terms | null {
   const row = db.prepare("SELECT json FROM terms WHERE hash = ?").get(hash) as { json: string } | undefined;
@@ -98,7 +102,7 @@ app.get("/api/agencies/:pubkey", async (c) => {
 
 /** Admin: check the agency against the NEA list and mark it verified onchain. */
 app.post("/api/agencies/:pubkey/verify", async (c) => {
-  if (c.req.header("x-admin-token") !== process.env.ADMIN_TOKEN) return fail(c, 401, "Not allowed");
+  if (!isAdmin(c)) return fail(c, 401, "Not allowed");
   const agency = await chain.getAgency(c.req.param("pubkey")).catch(() => null);
   if (!agency) return fail(c, 404, "Agency not found");
   const nea = checkNea(agency.name, agency.licenseNo);
@@ -123,7 +127,7 @@ app.get("/api/placements/:pubkey", async (c) => {
 async function fundAfterPayment(checkoutId: string, receipt: string) {
   const pay = db.prepare("SELECT placement, phone, status FROM payments WHERE checkout_id = ?").get(checkoutId) as any;
   if (!pay || pay.status === "funded") return;
-  const seekerRef = sha256(`kazisafe:seeker:${pay.phone}`);
+  const seekerRef = createHmac("sha256", SEEKER_REF_SECRET!).update(`kazisafe:seeker:${pay.phone}`).digest();
   const tx = await chain.fundPlacement(pay.placement, seekerRef);
   db.prepare("UPDATE payments SET status = 'funded', receipt = ?, fund_tx = ? WHERE checkout_id = ?").run(receipt, tx, checkoutId);
 }
@@ -205,13 +209,15 @@ app.post("/api/placements/:pubkey/proofs/offer", async (c) => {
 
   const r = await verifyOfferEmail(raw, ctx.terms.employerDomain);
   if (!r.ok) return fail(c, 400, r.reason);
+  if (offerProofUsedElsewhere(r.proofHash.toString("hex"), pubkey)) return fail(c, 400, "This offer email has already been used for another placement");
   const tx = await recordAndConfirm(pubkey, ctx.stage, "offer", r.proofHash, `DKIM pass: ${r.domain} — "${r.subject}"`, false);
   return c.json({ ok: true, stage: ctx.stage, domain: r.domain, subject: r.subject, proofHash: r.proofHash.toString("hex"), tx });
 });
 
-/** Demo only: confirm visa / salary stages until the zkTLS proofs for those portals are built. Clearly flagged as demo. */
+/** Demo only: confirm visa / salary stages until the zkTLS proofs for those portals are built. Clearly flagged as demo. Admin only. */
 app.post("/api/placements/:pubkey/proofs/demo", async (c) => {
   if (!DEMO_MODE) return fail(c, 403, "Demo proofs are disabled");
+  if (!isAdmin(c)) return fail(c, 401, "Demo proofs need the admin token");
   const pubkey = c.req.param("pubkey");
   let ctx;
   try {
