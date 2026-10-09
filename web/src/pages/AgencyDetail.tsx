@@ -35,7 +35,7 @@ export default function AgencyDetail() {
           <div className="stage" key={p.pubkey}>
             <div className="meta">
               <b>{p.terms?.jobTitle} · {p.terms?.country}</b>
-              <small>{p.terms ? kes(p.terms.feeKes) : ''} · stage {p.stagesDone}/{p.stageCount} · <Link to={`/p/${p.pubkey}`}>details</Link></small>
+              <small>{p.terms ? kes(p.terms.feeKes) : ''} · stage {p.stagesDone}/{p.stageCount} · <Link to={`/p/${p.pubkey}`}>details</Link> · <a href={explorer('address', p.pubkey)} target="_blank" rel="noreferrer">explorer</a></small>
             </div>
             <span className={statusChip(p.status)}>{p.status}</span>
           </div>

@@ -6,7 +6,7 @@ import { cors } from "hono/cors";
 import * as chain from "./chain.ts";
 import { db, offerProofUsedElsewhere, type Terms } from "./store.ts";
 import { verifyOfferEmail } from "./offerProof.ts";
-import { mpesaMode, normalisePhone, parseStkCallback, refundToPhone, stkPush } from "./mpesa.ts";
+import { mpesaMode, normalisePhone, parseStkCallback, refundToPhone, stkPaid, stkPush } from "./mpesa.ts";
 import { checkNea } from "./nea.ts";
 
 const KES_PER_USD = Number(process.env.KES_PER_USD ?? 129);
@@ -124,13 +124,23 @@ app.get("/api/placements/:pubkey", async (c) => {
   return v ? c.json(v) : fail(c, 404, "Placement not found");
 });
 
-async function fundAfterPayment(checkoutId: string, receipt: string) {
-  const pay = db.prepare("SELECT placement, phone, status FROM payments WHERE checkout_id = ?").get(checkoutId) as any;
-  if (!pay || pay.status === "funded") return;
+// Payment status: pending (PIN prompt sent) -> paid (M-Pesa confirmed) -> funded (escrow locked onchain),
+// or failed (cancelled, wrong PIN, timed out, or underpaid). A payment stuck at "paid" means the money
+// arrived but escrow funding failed, and needs a look.
+async function fundAfterPayment(checkoutId: string, receipt: string, amountKes: number) {
+  const pay = db.prepare("SELECT placement, phone, amount_kes, status FROM payments WHERE checkout_id = ?").get(checkoutId) as any;
+  if (!pay || pay.status === "funded" || pay.status === "paid") return;
+  if (amountKes < pay.amount_kes) {
+    db.prepare("UPDATE payments SET status = 'failed', receipt = ? WHERE checkout_id = ?").run(receipt, checkoutId);
+    throw new Error(`Underpaid: got KES ${amountKes}, expected ${pay.amount_kes} (${checkoutId})`);
+  }
+  db.prepare("UPDATE payments SET status = 'paid', receipt = ? WHERE checkout_id = ?").run(receipt, checkoutId);
   const seekerRef = createHmac("sha256", SEEKER_REF_SECRET!).update(`kazisafe:seeker:${pay.phone}`).digest();
   const tx = await chain.fundPlacement(pay.placement, seekerRef);
-  db.prepare("UPDATE payments SET status = 'funded', receipt = ?, fund_tx = ? WHERE checkout_id = ?").run(receipt, tx, checkoutId);
+  db.prepare("UPDATE payments SET status = 'funded', fund_tx = ? WHERE checkout_id = ?").run(tx, checkoutId);
 }
+
+const PIN_WINDOW = 120; // seconds a seeker has to enter their M-Pesa PIN
 
 /** Job seeker pays the fee by M-Pesa. Once the payment lands, the ramp locks the USDC equivalent in escrow. */
 app.post("/api/placements/:pubkey/pay", async (c) => {
@@ -147,6 +157,10 @@ app.post("/api/placements/:pubkey/pay", async (c) => {
   if (p.status !== "created") return fail(c, 400, "This placement is already paid or closed");
   const terms = termsFor(p.termsHash);
   if (!terms) return fail(c, 400, "Job terms missing");
+  const open = db
+    .prepare("SELECT 1 FROM payments WHERE placement = ? AND (status = 'paid' OR (status = 'pending' AND created_at > ?))")
+    .get(pubkey, now() - PIN_WINDOW);
+  if (open) return fail(c, 409, "A payment for this job is already in progress. Check your phone for the M-Pesa prompt.");
 
   const stk = await stkPush(msisdn, terms.feeKes, pubkey.slice(0, 12));
   db.prepare("INSERT INTO payments (checkout_id, placement, phone, amount_kes, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)").run(
@@ -157,14 +171,20 @@ app.post("/api/placements/:pubkey/pay", async (c) => {
     now(),
   );
   if (stk.mode === "mock") {
-    await fundAfterPayment(stk.checkoutRequestId, `MOCK${Date.now().toString().slice(-8)}`);
+    await fundAfterPayment(stk.checkoutRequestId, `MOCK${Date.now().toString().slice(-8)}`, terms.feeKes);
   }
   return c.json({ checkoutRequestId: stk.checkoutRequestId, mode: stk.mode });
 });
 
 app.post("/api/mpesa/callback", async (c) => {
-  const parsed = parseStkCallback(await c.req.json());
-  if (parsed) await fundAfterPayment(parsed.checkoutRequestId, parsed.receipt).catch((e) => console.error("fund failed", e));
+  const cb = parseStkCallback(await c.req.json().catch(() => null));
+  if (cb && !cb.ok) {
+    db.prepare("UPDATE payments SET status = 'failed' WHERE checkout_id = ? AND status = 'pending'").run(cb.checkoutRequestId);
+  } else if (cb) {
+    const confirmed = await stkPaid(cb.checkoutRequestId).catch(() => false);
+    if (confirmed) await fundAfterPayment(cb.checkoutRequestId, cb.receipt, cb.amount).catch((e) => console.error("fund failed", e));
+    else console.error("callback not confirmed by Daraja, ignored", cb.checkoutRequestId);
+  }
   return c.json({ ResultCode: 0, ResultDesc: "Accepted" });
 });
 

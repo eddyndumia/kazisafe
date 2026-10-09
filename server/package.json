@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "test": "tsx --test test/offerProof.test.ts test/store.test.ts",
+    "test": "tsx --test test/offerProof.test.ts test/store.test.ts test/mpesa.test.ts",
     "test:program": "docker run --rm -v \"$(cd .. && pwd):/work\" -v kazisafe-node24:/work/server/node_modules -w /work/server node:24-bookworm-slim bash -c \"npm ci --no-audit --no-fund >/dev/null 2>&1; npm i --no-save litesvm@0.8.0 >/dev/null 2>&1; npx tsx --test test/program.test.ts\""
   },
   "dependencies": {

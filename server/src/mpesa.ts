@@ -59,13 +59,43 @@ export async function stkPush(phone: string, amountKes: number, reference: strin
   return { checkoutRequestId: body.CheckoutRequestID, mode: "daraja" };
 }
 
-/** Parses Daraja's STK callback. Returns null if the payment failed or was cancelled. */
-export function parseStkCallback(body: any): { checkoutRequestId: string; receipt: string; amount: number } | null {
+export type StkOutcome = { checkoutRequestId: string; ok: boolean; receipt: string; amount: number; reason: string };
+
+/** Parses Daraja's STK callback, paid or not. Returns null if the body isn't an STK callback. */
+export function parseStkCallback(body: any): StkOutcome | null {
   const cb = body?.Body?.stkCallback;
-  if (!cb || cb.ResultCode !== 0) return null;
+  if (!cb?.CheckoutRequestID) return null;
   const items: Array<{ Name: string; Value: unknown }> = cb.CallbackMetadata?.Item ?? [];
   const get = (n: string) => items.find((i) => i.Name === n)?.Value;
-  return { checkoutRequestId: cb.CheckoutRequestID, receipt: String(get("MpesaReceiptNumber") ?? ""), amount: Number(get("Amount") ?? 0) };
+  return {
+    checkoutRequestId: cb.CheckoutRequestID,
+    ok: cb.ResultCode === 0,
+    receipt: String(get("MpesaReceiptNumber") ?? ""),
+    amount: Number(get("Amount") ?? 0),
+    reason: String(cb.ResultDesc ?? ""),
+  };
+}
+
+/**
+ * Asks Daraja directly whether an STK payment succeeded. The callback URL is public and unsigned,
+ * so we never fund escrow on the callback's word alone.
+ */
+export async function stkPaid(checkoutRequestId: string): Promise<boolean> {
+  if (mpesaMode() === "mock") return checkoutRequestId.startsWith("mock_");
+  const shortcode = process.env.DARAJA_SHORTCODE!;
+  const ts = timestamp();
+  const r = await fetch(`${BASE}/mpesa/stkpushquery/v1/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await token()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      BusinessShortCode: shortcode,
+      Password: Buffer.from(`${shortcode}${process.env.DARAJA_PASSKEY}${ts}`).toString("base64"),
+      Timestamp: ts,
+      CheckoutRequestID: checkoutRequestId,
+    }),
+  });
+  const body = (await r.json().catch(() => ({}))) as { ResultCode?: string | number };
+  return r.ok && String(body.ResultCode) === "0";
 }
 
 /** Refund to the job seeker's M-Pesa. Mocked until B2C credentials are approved by Safaricom. */

@@ -13,6 +13,8 @@ const T = {
     released: 'Released to agency', refundTitle: 'The deadline has passed', refundNote: 'The job was not completed in time. Get back everything that was not released.',
     refund: 'Refund me', refunded: 'Refunded to your M-Pesa', completed: 'Job confirmed. All stages proven.',
     agency: 'Agency', verified: 'NEA licensed', record: 'See their record', proof: 'proof', demo: 'demo proof',
+    waitTitle: 'Enter your M-Pesa PIN', waitNote: 'We sent a payment prompt to your phone. This page updates by itself once the money is locked in escrow.',
+    failed: 'The payment did not go through (cancelled, wrong PIN or timed out). You were not charged. Try again.',
   },
   sw: {
     job: 'Kazi', employer: 'Mwajiri', country: 'Nchi', salary: 'Mshahara kwa mwezi', fee: 'Ada ya wakala',
@@ -23,6 +25,8 @@ const T = {
     released: 'Imelipwa kwa wakala', refundTitle: 'Tarehe ya mwisho imepita', refundNote: 'Kazi haikukamilika kwa wakati. Rudishiwa pesa ambayo haijalipwa.',
     refund: 'Nirudishie pesa', refunded: 'Imerudishwa kwa M-Pesa yako', completed: 'Kazi imethibitishwa. Hatua zote zimekamilika.',
     agency: 'Wakala', verified: 'Ameidhinishwa na NEA', record: 'Ona rekodi yao', proof: 'uthibitisho', demo: 'uthibitisho wa majaribio',
+    waitTitle: 'Weka PIN yako ya M-Pesa', waitNote: 'Tumetuma ombi la malipo kwa simu yako. Ukurasa huu utajisasisha pesa ikishafungwa salama.',
+    failed: 'Malipo hayakufanikiwa (yaliachwa, PIN si sahihi au muda uliisha). Hujakatwa pesa. Jaribu tena.',
   },
 }
 
@@ -48,6 +52,15 @@ export default function Seeker() {
     }
   }, [pubkey])
   useEffect(() => { load() }, [load])
+
+  // While the seeker is entering their PIN, keep checking until the payment lands or fails.
+  const waiting = p?.status === 'created' && (p.payment?.status === 'pending' || p.payment?.status === 'paid')
+    && Date.now() / 1000 - p.payment.created_at < 150
+  useEffect(() => {
+    if (!waiting) return
+    const id = setInterval(load, 3000)
+    return () => clearInterval(id)
+  }, [waiting, load])
   useEffect(() => { try { localStorage.setItem('lang', lang) } catch { /* ignore */ } }, [lang])
 
   const act = async (fn: () => Promise<unknown>) => {
@@ -103,8 +116,16 @@ export default function Seeker() {
         )}
       </div>
 
-      {p.status === 'created' && (
+      {waiting && (
         <div className="card-glass glass" style={{ marginTop: 18 }}>
+          <h3>{t.waitTitle}</h3>
+          <p className="muted" style={{ marginTop: 6 }}>{t.waitNote}</p>
+        </div>
+      )}
+
+      {p.status === 'created' && !waiting && (
+        <div className="card-glass glass" style={{ marginTop: 18 }}>
+          {p.payment?.status === 'failed' && <p className="error" style={{ marginBottom: 12 }}>{t.failed}</p>}
           <h3>{t.payTitle}</h3>
           <p className="muted" style={{ margin: '6px 0 16px' }}>{t.payNote}</p>
           <form className="form" onSubmit={(e) => { e.preventDefault(); act(() => api.pay(pubkey, phone)) }}>

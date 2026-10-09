@@ -25,7 +25,7 @@ export type Placement = {
   termsHash: string
   terms: Terms | null
   proofs?: Array<{ stage: number; kind: string; proof_hash: string; detail: string; demo: number; tx: string; created_at: number }>
-  payment?: { phone: string; amount_kes: number; status: string; receipt: string; fund_tx: string } | null
+  payment?: { phone: string; amount_kes: number; status: 'pending' | 'paid' | 'funded' | 'failed'; receipt: string; fund_tx: string; created_at: number } | null
   refund?: { amount_kes: number; tx: string; mpesa_ref: string } | null
 }
 export type AgencyRow = {
