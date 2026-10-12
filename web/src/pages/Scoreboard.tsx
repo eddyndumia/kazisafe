@@ -21,22 +21,22 @@ export default function Scoreboard() {
         {!rows && !err && <p className="muted">Loading…</p>}
         {rows && (
           <div className="table-wrap">
-            <table className="table">
+            <table className="table table-cards">
               <thead>
                 <tr><th>Agency</th><th>Status</th><th>Placed abroad</th><th>Refunded</th><th>Success rate</th><th>Released</th></tr>
               </thead>
               <tbody>
                 {list.map((r) => (
                   <tr key={r.pubkey}>
-                    <td><Link to={`/agencies/${r.pubkey}`} style={{ fontWeight: 600 }}>{r.name}</Link><div className="muted mono">{r.licenseNo}</div></td>
-                    <td>{r.verified ? <span className="chip chip-ok">✓ NEA verified</span> : <span className="chip">Not verified</span>}</td>
-                    <td>{r.placementsCompleted}</td>
-                    <td>{r.placementsRefunded}</td>
-                    <td>{r.successRate === null ? <span className="muted">No results yet</span> : `${Math.round(r.successRate * 100)}%`}</td>
-                    <td>{usdc(r.totalReleased)}</td>
+                    <td className="full"><Link to={`/agencies/${r.pubkey}`} style={{ fontWeight: 600 }}>{r.name}</Link><div className="muted mono">{r.licenseNo}</div></td>
+                    <td className="full">{r.verified ? <span className="chip chip-ok">✓ NEA verified</span> : <span className="chip">Not verified</span>}</td>
+                    <td data-label="Placed abroad">{r.placementsCompleted}</td>
+                    <td data-label="Refunded">{r.placementsRefunded}</td>
+                    <td data-label="Success rate">{r.successRate === null ? <span className="muted">No results yet</span> : `${Math.round(r.successRate * 100)}%`}</td>
+                    <td data-label="Released">{usdc(r.totalReleased)}</td>
                   </tr>
                 ))}
-                {!list.length && <tr><td colSpan={6} className="muted">No agencies found.</td></tr>}
+                {!list.length && <tr><td colSpan={6} className="muted full">No agencies found.</td></tr>}
               </tbody>
             </table>
           </div>

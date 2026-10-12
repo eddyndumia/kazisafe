@@ -15,6 +15,7 @@ const T = {
     agency: 'Agency', verified: 'NEA licensed', record: 'See their record', proof: 'proof', demo: 'demo proof',
     waitTitle: 'Enter your M-Pesa PIN', waitNote: 'We sent a payment prompt to your phone. This page updates by itself once the money is locked in escrow.',
     failed: 'The payment did not go through (cancelled, wrong PIN or timed out). You were not charged. Try again.',
+    paidOut: 'Paid to the agency. Job confirmed', cancelled: 'Cancelled by the agency. Nothing was paid', inEscrow: 'In escrow',
   },
   sw: {
     job: 'Kazi', employer: 'Mwajiri', country: 'Nchi', salary: 'Mshahara kwa mwezi', fee: 'Ada ya wakala',
@@ -27,6 +28,7 @@ const T = {
     agency: 'Wakala', verified: 'Ameidhinishwa na NEA', record: 'Ona rekodi yao', proof: 'uthibitisho', demo: 'uthibitisho wa majaribio',
     waitTitle: 'Weka PIN yako ya M-Pesa', waitNote: 'Tumetuma ombi la malipo kwa simu yako. Ukurasa huu utajisasisha pesa ikishafungwa salama.',
     failed: 'Malipo hayakufanikiwa (yaliachwa, PIN si sahihi au muda uliisha). Hujakatwa pesa. Jaribu tena.',
+    paidOut: 'Imelipwa kwa wakala. Kazi imethibitishwa', cancelled: 'Imeghairiwa na wakala. Hakuna kilicholipwa', inEscrow: 'Imehifadhiwa',
   },
 }
 
@@ -83,11 +85,26 @@ export default function Seeker() {
   const pastDeadline = Date.now() > deadline.getTime()
   const releasedPct = Number(p.released) / Number(p.amount)
   const releasedKes = terms.feeKes * releasedPct
+  const refundedKes = p.status === 'refunded' ? terms.feeKes - releasedKes : 0
+  const heldKes = p.status === 'funded' ? terms.feeKes - releasedKes : 0
+  // The headline follows the money: what's held now, what went back, or what was paid out.
+  const headline = {
+    created: [t.notPaid, terms.feeKes],
+    funded: [t.held, heldKes],
+    completed: [t.paidOut, terms.feeKes],
+    refunded: [t.refunded, refundedKes],
+    cancelled: [t.cancelled, 0],
+  }[p.status] as [string, number]
+  const pct = (n: number) => `${(n / terms.feeKes) * 100}%`
 
   return (
     <main className="wrap page" style={{ maxWidth: 760 }}>
-      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 18 }}>
-        <span className="chip">{t.job}: {terms.jobTitle}</span>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 20 }}>
+        <div>
+          <small className="muted">{t.job}</small>
+          <h2 style={{ fontSize: 34, lineHeight: 1.1 }}>{terms.jobTitle}</h2>
+          <div className="muted">{terms.employerName} · {terms.country}</div>
+        </div>
         <div className="tabs" style={{ flex: 'none' }}>
           <button className={lang === 'en' ? 'on' : ''} onClick={() => setLang('en')}>English</button>
           <button className={lang === 'sw' ? 'on' : ''} onClick={() => setLang('sw')}>Kiswahili</button>
@@ -95,10 +112,23 @@ export default function Seeker() {
       </div>
 
       <div className="money-card">
-        <div className="lbl">{p.status === 'created' ? t.notPaid : p.status === 'refunded' ? t.refunded : t.held}</div>
-        <div className="big">{kes(terms.feeKes - (p.status === 'refunded' ? 0 : releasedKes))}</div>
+        <div className="lbl">{headline[0]}</div>
+        <div className="big">{kes(headline[1])}</div>
+        {p.status !== 'created' && p.status !== 'cancelled' && (
+          <>
+            <div className="money-bar" aria-hidden>
+              <i className="released" style={{ width: pct(releasedKes) }} />
+              <i className="refunded" style={{ width: pct(refundedKes) }} />
+            </div>
+            <div className="money-legend">
+              <span className="released">{t.released}: {kes(releasedKes)}</span>
+              {p.status === 'funded' && <span>{t.inEscrow}: {kes(heldKes)}</span>}
+              {p.status === 'refunded' && <span className="refunded">{t.refunded}: {kes(refundedKes)}</span>}
+            </div>
+          </>
+        )}
         <div className="lbl" style={{ marginTop: 14 }}>
-          {t.released}: {kes(releasedKes)} · {t.deadline}: {deadline.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
+          {t.fee}: {kes(terms.feeKes)} · {t.deadline}: {deadline.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
         </div>
       </div>
 
@@ -165,7 +195,7 @@ export default function Seeker() {
         })}
       </div>
 
-      {p.status === 'completed' && <p className="notice" style={{ marginTop: 18 }}>{t.completed}</p>}
+      {p.status === 'completed' && <p className="notice notice-ok" style={{ marginTop: 18 }}>{t.completed}</p>}
       {p.status === 'funded' && pastDeadline && (
         <div className="card-glass glass" style={{ marginTop: 18 }}>
           <h3>{t.refundTitle}</h3>
@@ -174,7 +204,7 @@ export default function Seeker() {
         </div>
       )}
       {p.status === 'refunded' && p.refund && (
-        <p className="notice" style={{ marginTop: 18 }}>
+        <p className="notice notice-ok" style={{ marginTop: 18 }}>
           {t.refunded}: {kes(p.refund.amount_kes)} · <a href={explorer('tx', p.refund.tx)} target="_blank" rel="noreferrer">tx</a>
         </p>
       )}

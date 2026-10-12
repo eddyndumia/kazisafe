@@ -42,6 +42,13 @@ export default function Agency() {
     }
   }, [wallet, connection])
   useEffect(() => { load() }, [load])
+  // Waiting for the NEA check: pick up verification without a reload.
+  const pendingVerify = !!agency && !agency.verified
+  useEffect(() => {
+    if (!pendingVerify) return
+    const id = setInterval(load, 10000)
+    return () => clearInterval(id)
+  }, [pendingVerify, load])
 
   const run = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label); setErr('')
@@ -103,13 +110,27 @@ export default function Agency() {
         <>
           <div className="grid3" style={{ marginBottom: 24 }}>
             <div className="card"><small className="muted">Agency</small><h3>{agency.name}</h3>
-              {agency.verified ? <span className="chip chip-ok">✓ Verified</span> : <span className="chip chip-brand">Waiting for NEA check</span>}
+              <div className="muted mono" style={{ marginBottom: 10 }}>NEA licence {agency.licenseNo}</div>
+              {agency.verified ? <span className="chip chip-ok">✓ NEA verified</span> : <span className="chip chip-brand">Waiting for NEA check</span>}
             </div>
-            <div className="card"><small className="muted">Placements</small><h3>{agency.placementsCreated.toString()} created · {agency.placementsCompleted.toString()} completed</h3>
-              <span className="muted">{agency.placementsRefunded.toString()} refunded</span></div>
-            <div className="card"><small className="muted">Released to you</small><h3>{usdc(agency.totalReleased.toString())}</h3>
+            <div className="card"><small className="muted">Placed abroad</small>
+              <div className="stat-num">{agency.placementsCompleted.toString()}</div>
+              <span className="muted">{agency.placementsCreated.toString()} created · {agency.placementsRefunded.toString()} refunded</span></div>
+            <div className="card"><small className="muted">Released to you</small>
+              <div className="stat-num">{usdc(agency.totalReleased.toString())}</div>
               <Link to={`/agencies/${agency.pda.toBase58()}`} className="muted">Public record →</Link></div>
           </div>
+
+          {!agency.verified && (
+            <div className="card-glass glass" style={{ marginBottom: 24, maxWidth: 640 }}>
+              <h3>What happens next</h3>
+              <ol className="steps">
+                <li><span className="check">✓</span><div><b>Registered onchain</b><small>Your agency record is public and permanent.</small></div></li>
+                <li><span className="check active">2</span><div><b>NEA licence check</b><small>KaziSafe checks your licence number against the National Employment Authority list, then marks you verified. This page updates once it's done.</small></div></li>
+                <li><span className="check wait">3</span><div><b>Create placements</b><small>Add a job, share the payment link with the job seeker, and get paid as each stage is proven.</small></div></li>
+              </ol>
+            </div>
+          )}
 
           {agency.verified && (
             <div className="card-glass glass" style={{ marginBottom: 24 }}>
