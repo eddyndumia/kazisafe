@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react'
+import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { PublicKey } from '@solana/web3.js'
 import { api, kes, usdc, type Health, type Placement, type Stage } from '../api'
@@ -16,6 +16,7 @@ const defaultStages: Stage[] = [
 export default function Agency() {
   const { connection } = useConnection()
   const wallet = useAnchorWallet()
+  const { sendTransaction } = useWallet()
   const [health, setHealth] = useState<Health | null>(null)
   const [agency, setAgency] = useState<any>(undefined)
   const [placements, setPlacements] = useState<Placement[]>([])
@@ -65,7 +66,7 @@ export default function Agency() {
       if (!wallet || !health?.mint) throw new Error('Not connected')
       const saved = await api.saveTerms({ ...form, feeKes: Number(form.feeKes), stages })
       const deadline = Math.floor(Date.now() / 1000) + Number(form.days) * (deadlineUnit === 'minutes' && health?.demoMode ? 60 : 86400)
-      const r = await createPlacement(connection, wallet, new PublicKey(health.mint), { amountUsdc: saved.amountUsdc, stageBps: saved.stageBps, deadline, termsHash: saved.termsHash })
+      const r = await createPlacement(connection, wallet, sendTransaction, new PublicKey(health.mint), { amountUsdc: saved.amountUsdc, stageBps: saved.stageBps, deadline, termsHash: saved.termsHash })
       setCreated(r.placement)
     })
 
@@ -90,7 +91,7 @@ export default function Agency() {
         <div className="card-glass glass" style={{ maxWidth: 560 }}>
           <h3>Register your agency</h3>
           <p className="muted" style={{ margin: '6px 0 16px' }}>We check you against the NEA licensed list before you can take payments.</p>
-          <form className="form" onSubmit={(e) => { e.preventDefault(); run('register', () => registerAgency(connection, wallet, reg.name, reg.licenseNo)) }}>
+          <form className="form" onSubmit={(e) => { e.preventDefault(); run('register', () => registerAgency(connection, wallet, sendTransaction, reg.name, reg.licenseNo)) }}>
             <label>Registered name<input value={reg.name} onChange={(e) => setReg({ ...reg, name: e.target.value })} maxLength={64} required /></label>
             <label>NEA licence number<input value={reg.licenseNo} onChange={(e) => setReg({ ...reg, licenseNo: e.target.value })} maxLength={32} required /></label>
             <button className="btn btn-primary" disabled={!!busy}>{busy ? 'Confirm in your wallet…' : 'Register'}</button>

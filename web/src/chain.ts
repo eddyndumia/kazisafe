@@ -1,5 +1,5 @@
 import { AnchorProvider, BN, Program, type Idl } from '@anchor-lang/core'
-import { PublicKey, SystemProgram, type Connection } from '@solana/web3.js'
+import { PublicKey, SystemProgram, type Connection, type Transaction } from '@solana/web3.js'
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from '@solana/spl-token'
 import type { AnchorWallet } from '@solana/wallet-adapter-react'
 import idl from './idl.json'
@@ -14,6 +14,19 @@ export const placementPda = (agency: PublicKey, id: bigint) => {
   return PublicKey.findProgramAddressSync([new TextEncoder().encode('placement'), agency.toBuffer(), b], PROGRAM_ID)[0]
 }
 
+/** The wallet adapter's sendTransaction. Unlike Anchor's .rpc(), it tells the wallet which cluster the
+ * transaction is for, so wallets like MetaMask simulate it on devnet instead of mainnet. */
+export type SendTx = (tx: Transaction, connection: Connection) => Promise<string>
+
+async function sendAndConfirm(connection: Connection, send: SendTx, tx: Transaction) {
+  const latest = await connection.getLatestBlockhash('confirmed')
+  tx.recentBlockhash = latest.blockhash
+  const sig = await send(tx, connection)
+  const res = await connection.confirmTransaction({ signature: sig, ...latest }, 'confirmed')
+  if (res.value.err) throw new Error(`Transaction failed: ${JSON.stringify(res.value.err)}`)
+  return sig
+}
+
 export function programFor(connection: Connection, wallet: AnchorWallet) {
   return new Program(idl as Idl, new AnchorProvider(connection, wallet, { commitment: 'confirmed' }))
 }
@@ -25,17 +38,19 @@ export async function fetchAgency(connection: Connection, wallet: AnchorWallet) 
   return acc ? { pda, ...acc } : null
 }
 
-export async function registerAgency(connection: Connection, wallet: AnchorWallet, name: string, licenseNo: string) {
+export async function registerAgency(connection: Connection, wallet: AnchorWallet, send: SendTx, name: string, licenseNo: string) {
   const program = programFor(connection, wallet)
-  return (program.methods as any)
+  const tx = await (program.methods as any)
     .registerAgency(name, licenseNo)
     .accountsStrict({ authority: wallet.publicKey, agency: agencyPda(wallet.publicKey), systemProgram: SystemProgram.programId })
-    .rpc()
+    .transaction()
+  return sendAndConfirm(connection, send, tx)
 }
 
 export async function createPlacement(
   connection: Connection,
   wallet: AnchorWallet,
+  send: SendTx,
   mint: PublicKey,
   args: { amountUsdc: number; stageBps: number[]; deadline: number; termsHash: string },
 ) {
@@ -45,7 +60,7 @@ export async function createPlacement(
   const id = BigInt(acc.placementsCreated.toString())
   const placement = placementPda(agency, id)
   const hash = Array.from(args.termsHash.match(/../g)!.map((h) => parseInt(h, 16)))
-  const sig = await (program.methods as any)
+  const tx = await (program.methods as any)
     .createPlacement({ amount: new BN(args.amountUsdc), stageBps: args.stageBps, deadline: new BN(args.deadline), termsHash: hash })
     .accountsStrict({
       authority: wallet.publicKey,
@@ -58,6 +73,7 @@ export async function createPlacement(
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
-    .rpc()
+    .transaction()
+  const sig = await sendAndConfirm(connection, send, tx)
   return { sig, placement: placement.toBase58() }
 }
