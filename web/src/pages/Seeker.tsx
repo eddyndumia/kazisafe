@@ -61,6 +61,13 @@ export default function Seeker() {
     const id = setInterval(load, 3000)
     return () => clearInterval(id)
   }, [waiting, load])
+  // While the money is in escrow, pick up proven stages and a passed deadline without a reload.
+  const active = p?.status === 'funded'
+  useEffect(() => {
+    if (!active) return
+    const id = setInterval(load, 5000)
+    return () => clearInterval(id)
+  }, [active, load])
   useEffect(() => { try { localStorage.setItem('lang', lang) } catch { /* ignore */ } }, [lang])
 
   const act = async (fn: () => Promise<unknown>) => {
