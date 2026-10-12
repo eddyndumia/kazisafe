@@ -32,9 +32,11 @@ const pid = program.programId;
 const config = PublicKey.findProgramAddressSync([Buffer.from("config")], pid)[0];
 const agency = PublicKey.findProgramAddressSync([Buffer.from("agency"), agencyKey.publicKey.toBuffer()], pid)[0];
 
-await m.registerAgency("DEMO Safari Manpower Services", "DEMO-NEA-0002").accountsStrict({ authority: agencyKey.publicKey, agency, systemProgram: SystemProgram.programId }).rpc();
+// Clearly labelled so smoke runs don't look like real agencies on the public scoreboard.
+const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+await m.registerAgency(`TEST smoke run ${stamp}`, "TEST-SMOKE").accountsStrict({ authority: agencyKey.publicKey, agency, systemProgram: SystemProgram.programId }).rpc();
 console.log("registered", agency.toBase58());
-console.log("verify", (await call(`/api/agencies/${agency.toBase58()}/verify`, {}, { "x-admin-token": process.env.ADMIN_TOKEN! })).tx);
+console.log("verify", (await call(`/api/agencies/${agency.toBase58()}/verify?force=1`, {}, { "x-admin-token": process.env.ADMIN_TOKEN! })).tx);
 
 async function place(id: number, days: number, seconds = 0) {
   const t = await call("/api/terms", {
@@ -68,3 +70,8 @@ await new Promise((r) => setTimeout(r, 35_000));
 console.log("refund", await call(`/api/placements/${p2}/refund`, {}));
 console.log("status", (await call(`/api/placements/${p2}`)).status);
 console.log("agency", await call(`/api/agencies/${agency.toBase58()}`).then((a) => ({ completed: a.placementsCompleted, refunded: a.placementsRefunded })));
+
+// Unverify the test agency afterwards so it sorts below real agencies as "Not verified". Its record stays onchain.
+const asAdmin = new Program(idl, new AnchorProvider(connection, new Wallet(admin), { commitment: "confirmed" }));
+await (asAdmin.methods as any).setAgencyVerified(false).accountsStrict({ admin: admin.publicKey, config, agency }).rpc();
+console.log("test agency unverified");
