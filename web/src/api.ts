@@ -43,8 +43,12 @@ export type AgencyRow = {
 }
 export type Health = { programId: string; mint: string | null; feeBps: number | null; kesPerUsd: number; mpesa: string; demoMode: boolean }
 
+// Shown when the page is served without the KaziSafe server behind it (e.g. the static public site).
+const OFFLINE = 'The live demo server is not connected to this site. Run KaziSafe from the GitHub repo to try the full flow on Solana devnet.'
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const r = await fetch(API + path, init)
+  const r = await fetch(API + path, init).catch(() => { throw new Error(OFFLINE) })
+  if (!(r.headers.get('content-type') ?? '').includes('json')) throw new Error(OFFLINE)
   const body = await r.json().catch(() => ({}))
   if (!r.ok) throw new Error(body.error ?? (body.errors ? body.errors.join('. ') : `Request failed (${r.status})`))
   return body as T

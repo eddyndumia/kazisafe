@@ -30,10 +30,10 @@ export default function Layout() {
             <Logo /> KaziSafe
           </Link>
           <div className="nav-links">
-            <a href="/#how">How it works</a>
+            <a href={`${import.meta.env.BASE_URL}#how`}>How it works</a>
             <NavLink to="/agencies">Agency scoreboard</NavLink>
-            <a href="/#why">Why onchain</a>
-            <a href="/#faq">FAQs</a>
+            <a href={`${import.meta.env.BASE_URL}#why`}>Why onchain</a>
+            <a href={`${import.meta.env.BASE_URL}#faq`}>FAQs</a>
           </div>
           <Link to="/agency" className="btn btn-dark btn-sm">For agencies</Link>
         </nav>
